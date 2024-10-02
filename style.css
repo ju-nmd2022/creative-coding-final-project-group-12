@@ -1,0 +1,63 @@
+html,
+body {
+  background-color: white;
+  font-family: "Courier New", Courier, monospace;
+}
+
+.grid-container {
+  display: grid;
+  grid-template-columns: 50% 50%;
+  grid-template-rows: auto;
+  grid-template-areas:
+    "heading heading"
+    "poem-input-container poem-output-container";
+}
+
+.heading {
+  grid-area: heading;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+}
+
+.poem-input-container {
+  grid-area: poem-input-container;
+  font-family: arial;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 100px;
+}
+
+#input-field {
+  width: 400px;
+  border: 1px solid #d3d3d3;
+  border-radius: 6px;
+  padding: 10px;
+}
+
+#button {
+  border: 1px solid #d3d3d3;
+  border-radius: 6px;
+  padding: 10px;
+}
+
+.poem-output-container {
+  grid-area: poem-output-container;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 600px;
+  height: 100px;
+  border: 1px solid #d3d3d3;
+  border-radius: 6px;
+  padding: 100px;
+}
+
+#poem-output {
+  font-family: "Courier New", Courier, monospace;
+  text-align: center;
+}
