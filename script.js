@@ -1,3 +1,36 @@
+document.getElementById("button").addEventListener("click", generatePoem);
+
+function generatePoem() {
+  const inputWord = document.getElementById("input-field").value;
+
+  document.getElementById("poem-output").textContent = "Generating poem...";
+
+  // Call Datamuse API to get related words
+  fetch(`https://api.datamuse.com/words?ml=${inputWord}`)
+    .then((response) => response.json())
+    .then((data) => {
+      if (data.length > 0) {
+        const selectedWords = data.slice(0, 5).map((item) => item.word);
+
+        const poem = createPoem(selectedWords);
+
+        document.getElementById("poem-output").textContent = poem;
+      } else {
+        document.getElementById("poem-output").textContent =
+          "Couldn't generate a poem. Try another word!";
+      }
+    })
+    .catch((error) => {
+      document.getElementById("poem-output").textContent =
+        "Error generating poem";
+      console.error("Error fetching data from Datamuse API:", error);
+    });
+}
+
+function createPoem(words) {
+  return `\n\n${words.join(", ")}.`;
+}
+
 // const words = {
 //     love: {
 //       happy: {
@@ -71,31 +104,3 @@
 //       ]
 //     }
 //   };
-
-document.getElementById("button").addEventListener("click", generatePoem);
-
-function generatePoem() {
-  const inputWord = document.getElementById("input-field").value;
-
-  document.getElementById("poem-output").textContent = "Generating poem...";
-
-  // Call Datamuse API to get related words
-  fetch(`https://api.datamuse.com/words?ml=${inputWord}`)
-    .then((response) => response.json())
-    .then((data) => {
-      if (data.length > 0) {
-        const selectedWords = data.slice(0, 5).map((item) => item.word);
-
-        const poem = createPoem(selectedWords);
-
-        document.getElementById("poem-output").textContent = poem;
-      } else {
-        document.getElementById("poem-output").textContent =
-          "Couldn't generate a poem. Try another word!";
-      }
-    });
-}
-
-function createPoem(words) {
-  return `\n\n${words.join(", ")}.`;
-}
