@@ -1,9 +1,6 @@
-function createPoem(words) {
-  return `\n\n${words.join(", ")}.`;
-}
-
 document.getElementById("button").addEventListener("click", generatePoem);
 
+// Function to generate a poem based on user input
 function generatePoem() {
   const inputWord = document.getElementById("input-field").value;
 
@@ -19,14 +16,19 @@ function generatePoem() {
     )
     .then(([adjectives, nouns]) => {
       if (adjectives.length > 0 && nouns.length > 0) {
-        const selectedAdjectives = adjectives
+        const selectedAdjectives = shuffleArray(adjectives)
           .slice(0, 4)
-          .map((item) => item.word); // 4 adjectives
-        const selectedNouns = nouns.slice(0, 4).map((item) => item.word); // 4 nouns
+          .map((item) => item.word); // 4 random adjectives
 
+        const selectedNouns = shuffleArray(nouns)
+          .slice(0, 4)
+          .map((item) => item.word); // 4 random nouns
+
+        // Create the poem using the selected words
         const poem = createPoem(selectedAdjectives, selectedNouns);
 
-        document.getElementById("poem-output").textContent = poem;
+        // Update the poem output
+        document.getElementById("poem-output").innerHTML = poem;
       } else {
         document.getElementById("poem-output").textContent =
           "Couldn't generate a poem. Try another word!";
@@ -39,10 +41,22 @@ function generatePoem() {
     });
 }
 
+// Function to create a poem from adjectives and nouns
 function createPoem(adjectives, nouns) {
   let poemLines = "";
   for (let i = 0; i < adjectives.length && i < nouns.length; i++) {
-    poemLines += `${adjectives[i]} ${nouns[i]}\n`;
+    const line = `${adjectives[i]} ${nouns[i]}`;
+    const capitalizedLine = line.charAt(0).toUpperCase() + line.slice(1);
+    poemLines += `${capitalizedLine}<br><br>`;
   }
-  return `\n\n${poemLines.trim()}`;
+  return `<div>${poemLines.trim()}</div>`;
+}
+
+// Function to shuffle an array (Fisher-Yates Shuffle Algorithm)
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]]; // Swap elements
+  }
+  return array;
 }

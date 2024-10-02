@@ -59,5 +59,6 @@ body {
 
 #poem-output {
   font-family: "Courier New", Courier, monospace;
-  text-align: center;
+  text-align: left;
+  line-height: 1;
 }
