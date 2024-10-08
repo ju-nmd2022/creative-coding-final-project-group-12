@@ -1,4 +1,6 @@
 ////// Haiku version   5-7-5
+let lastInputWord = "";
+let repeatCount = 0;
 
 document.getElementById("button").addEventListener("click", generatePoem);
 
@@ -8,6 +10,36 @@ function generatePoem() {
 
   document.getElementById("poem-output").textContent = "Generating poem...";
 
+  // Check if current input = last input
+  let wordToUse = inputWord;
+  if (inputWord === lastInputWord) {
+    repeatCount++;
+  } else {
+    repeatCount = 0;
+  }
+
+  lastInputWord = inputWord;
+
+  console.log(`Input Word: ${inputWord}, Repeat Count: ${repeatCount}`);
+
+  // Generate opposite word
+  if (repeatCount === 1) {
+    console.log("Fetching antonym...");
+    getOppositeWord(inputWord).then((oppositeWord) => {
+      console.log(`Antonym Found: ${oppositeWord}`);
+      if (oppositeWord !== inputWord) {
+        wordToUse = oppositeWord;
+      }
+      fetchWords(wordToUse);
+    });
+    repeatCount = 0;
+  } else {
+    fetchWords(wordToUse);
+  }
+}
+
+// Function to fetch words for poem
+function fetchWords(inputWord) {
   // Fetch adjectives and nouns related to the input word
   Promise.all([
     fetch(`https://api.datamuse.com/words?rel_jjb=${inputWord}`), // Get adjectives
@@ -42,6 +74,24 @@ function generatePoem() {
       document.getElementById("poem-output").textContent =
         "Error generating poem";
       console.error("Error fetching data from Datamuse API:", error);
+    });
+}
+
+// Function for fetching opposite words (antonyms)
+function getOppositeWord(word) {
+  return fetch(`https://api.datamuse.com/words?rel_ant=${word}`) // Finding antonyms
+    .then((response) => response.json())
+    .then((data) => {
+      console.log(`Response Data:`, data);
+      if (data.length > 0) {
+        return data[0].word; // Return the first antonym found
+      }
+      console.log(`No antonyms found for: ${word}`);
+      return word; // Return original word if no antonym is found
+    })
+    .catch((error) => {
+      console.error("Error fetching antonym from Datamuse API:", error);
+      return word; // Return original word on error
     });
 }
 
