@@ -23,13 +23,12 @@ function generatePoem() {
     console.log(`Input Word: ${inputWord}, Repeat Count: ${repeatCount}`);
 
     // Generate opposite word
-    if (repeatCount === 1) {
+    if (repeatCount === 5) {
         console.log("Fetching antonym...");
         getOppositeWordOrTone(inputWord).then((ConflictingWord) => {
             console.log(`Conflicting Word Found: ${ConflictingWord}`);
             if (ConflictingWord !== inputWord) {
                 wordToUse = ConflictingWord;
-                // Update the input field to show the antonym
                 inputField.value = ConflictingWord; // Update input field with antonym
             }
             fetchWords(wordToUse);
@@ -40,33 +39,58 @@ function generatePoem() {
     }
 }
 
-// Function to fetch words for poem
+// Function to fetch words for poem and identify verbs using the Dictionary API
 function fetchWords(inputWord) {
-    // Fetch nouns and words related to the input word
+    console.log(`Fetching words related to: ${inputWord}`);
     Promise.all([
-        fetch(`https://api.datamuse.com/words?rel_trg=${inputWord}`), // Get related words
-        fetch(`https://api.datamuse.com/words?rel_jjb=${inputWord}`), // Get adjectives
-        fetch(`https://api.datamuse.com/words?rel_jja=${inputWord}`)  // Get nouns
+        fetch(`https://api.datamuse.com/words?rel_trg=${inputWord}`), // Related words
+        fetch(`https://api.datamuse.com/words?rel_jjb=${inputWord}`), // Adjectives
+        fetch(`https://api.datamuse.com/words?rel_jja=${inputWord}`)  // Nouns
     ])
         .then(([relatedResponse, adjectiveResponse, nounResponse]) =>
             Promise.all([relatedResponse.json(), adjectiveResponse.json(), nounResponse.json()])
         )
         .then(([relatedWords, adjectives, nouns]) => {
+            console.log(`Adjectives:`, adjectives);
+            console.log(`Nouns:`, nouns);
+            console.log(`Related Words:`, relatedWords);
+
             if (adjectives.length > 0 && nouns.length > 0 && relatedWords.length > 0) {
                 const selectedAdjectives = shuffleArray(adjectives).map(item => item.word); // Random adjectives
                 const selectedNouns = shuffleArray(nouns).map(item => item.word); // Random nouns
                 const selectedRelatedWords = shuffleArray(relatedWords).map(item => item.word); // Random related words
 
-                // Create the haiku using the selected words
-                const haiku = createHaiku(selectedAdjectives, selectedNouns, selectedRelatedWords);
+                console.log(`Selected Adjectives: ${selectedAdjectives}`);
+                console.log(`Selected Nouns: ${selectedNouns}`);
+                console.log(`Selected Related Words (potential verbs): ${selectedRelatedWords}`);
 
-                // Update the poem output
-                if (haiku) {
-                    document.getElementById("poem-output").innerHTML = haiku;
-                } else {
-                    document.getElementById("poem-output").textContent =
-                        "Couldn't generate a valid haiku. Try another word!";
-                }
+                // Use the Dictionary API to find verbs only from the related words
+                const verbPromises = selectedRelatedWords.map(word => fetchPartOfSpeech(word));
+
+                // Wait for all verb checks to finish
+                Promise.all(verbPromises).then(partOfSpeechArray => {
+                    const verbs = [];
+
+                    // Check which related words are verbs
+                    partOfSpeechArray.forEach((parts, index) => {
+                        if (parts.includes('verb')) {
+                            verbs.push(selectedRelatedWords[index]); // Only push verbs to the array
+                        }
+                    });
+
+                    console.log(`Verbs: ${verbs}`);
+
+                    // Now we can create a Haiku with the identified adjectives, nouns, and verbs
+                    const haiku = createHaiku(selectedAdjectives, selectedNouns, verbs);
+
+                    // Update the poem output
+                    if (haiku) {
+                        document.getElementById("poem-output").innerHTML = haiku;
+                    } else {
+                        document.getElementById("poem-output").textContent =
+                            "Couldn't generate a valid haiku. Try another word!";
+                    }
+                });
             } else {
                 document.getElementById("poem-output").textContent =
                     "Couldn't generate a poem. Try another word!";
@@ -76,6 +100,27 @@ function fetchWords(inputWord) {
             document.getElementById("poem-output").textContent =
                 "Error generating poem";
             console.error("Error fetching data from Datamuse API:", error);
+        });
+}
+
+// Function to fetch the part of speech for a word using the Dictionary API
+function fetchPartOfSpeech(word) {
+    const dictionaryApiUrl = `https://api.dictionaryapi.dev/api/v2/entries/en/${word}`;
+
+    return fetch(dictionaryApiUrl)
+        .then(response => response.json())
+        .then(data => {
+            if (data && Array.isArray(data) && data.length > 0 && data[0].meanings) {
+                // Get parts of speech from the first meaning of the word
+                const parts = data[0].meanings.map(meaning => meaning.partOfSpeech);
+                console.log(`Word: ${word}, Parts of Speech: ${parts}`);
+                return parts;
+            }
+            return []; // Return empty array if no data found
+        })
+        .catch(error => {
+            console.error(`Error fetching part of speech for word "${word}":`, error);
+            return []; // Return empty array on error
         });
 }
 
@@ -95,7 +140,7 @@ function getOppositeWord(word) {
     return fetch(`https://api.datamuse.com/words?rel_ant=${word}`) // Finding antonyms
         .then((response) => response.json())
         .then((data) => {
-            console.log(`Response Data:`, data);
+            console.log(`Antonym Response Data:`, data);
             if (data.length > 0) {
                 return data[0].word; // Return the first antonym found
             }
@@ -151,7 +196,7 @@ function checkLine(sentence) {
 }
 
 // Function to generate a haiku
-function createHaiku(adjectives, nouns, relatedWords) {
+function createHaiku(adjectives, nouns, verbs) {
     let lines = ["", "", ""]; // Three lines for the haiku
     let remainingSyllables = [5, 7, 5]; // Expected syllable counts per line
 
@@ -162,22 +207,22 @@ function createHaiku(adjectives, nouns, relatedWords) {
 
         while (
             currentSyllables < remainingSyllables[i] &&
-            (adjectives.length > 0 || nouns.length > 0 || relatedWords.length > 0)
+            (adjectives.length > 0 || nouns.length > 0 || verbs.length > 0)
         ) {
-            // Randomly picks an adjective or noun to help build a line
+            // Randomly picks an adjective, noun, or verb to help build a line
             let linePart = "";
             if (i === 0) {
                 // For the first line, favor adjectives and nouns
                 linePart = adjectives.length > 0 ? adjectives.pop() : "";
                 linePart += nouns.length > 0 ? " " + nouns.pop() : "";
             } else if (i === 1) {
-                // For the second line, use related words and adjectives
-                linePart = relatedWords.length > 0 ? relatedWords.pop() : "";
+                // For the second line, use verbs and related words (verbs)
+                linePart = verbs.length > 0 ? verbs.pop() : "";
                 linePart += adjectives.length > 0 ? " " + adjectives.pop() : "";
             } else {
-                // For the third line, favor nouns and related words
+                // For the third line, favor nouns and verbs
                 linePart = nouns.length > 0 ? nouns.pop() : "";
-                linePart += relatedWords.length > 0 ? " " + relatedWords.pop() : "";
+                linePart += verbs.length > 0 ? " " + verbs.pop() : "";
             }
 
             linePart = linePart.trim(); // Trim to avoid unnecessary spaces
@@ -212,7 +257,7 @@ function createHaiku(adjectives, nouns, relatedWords) {
             return false; // Couldn't generate a valid haiku, abort
         }
 
-        lines[i] = currentLine.join(" ");
+        lines[i] = currentLine.join(" ").trim();
     }
 
     return `<div>${lines[0]}<br><br>${lines[1]}<br><br>${lines[2]}</div>`;
@@ -224,5 +269,5 @@ function shuffleArray(array) {
         const j = Math.floor(Math.random() * (i + 1));
         [array[i], array[j]] = [array[j], array[i]]; // Swap elements
     }
-    return array; 
+    return array;
 }
