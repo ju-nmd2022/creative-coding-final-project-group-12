@@ -1,4 +1,3 @@
-////// Haiku version   5-7-5
 let lastInputWord = "";
 let repeatCount = 0;
 
@@ -6,7 +5,8 @@ document.getElementById("button").addEventListener("click", generatePoem);
 
 // Function to generate a haiku poem based on user input
 function generatePoem() {
-    const inputWord = document.getElementById("input-field").value.trim();
+    const inputField = document.getElementById("input-field");
+    const inputWord = inputField.value.trim();
 
     document.getElementById("poem-output").textContent = "Generating poem...";
 
@@ -29,6 +29,8 @@ function generatePoem() {
             console.log(`Conflicting Word Found: ${ConflictingWord}`);
             if (ConflictingWord !== inputWord) {
                 wordToUse = ConflictingWord;
+                // Update the input field to show the antonym
+                inputField.value = ConflictingWord; // Update input field with antonym
             }
             fetchWords(wordToUse);
         });
@@ -195,11 +197,10 @@ function createHaiku(adjectives, nouns, relatedWords) {
                 !linePart.endsWith("is") && // Avoid ending with "is"
                 !linePart.endsWith("are") // Avoid ending with "are"
             ) {
-                currentLine.push(linePart);
-                currentSyllables += syllableCount;
+                currentLine.push(linePart); 
+                currentSyllables += syllableCount; 
             }
         }
-
         console.log(
             `Line ${i + 1} generated: "${currentLine.join(
                 " "
@@ -223,5 +224,5 @@ function shuffleArray(array) {
         const j = Math.floor(Math.random() * (i + 1));
         [array[i], array[j]] = [array[j], array[i]]; // Swap elements
     }
-    return array;
+    return array; 
 }
