@@ -70,6 +70,23 @@ function fetchWords(inputWord) {
       console.log(`Nouns:`, nouns);
       console.log(`Related Words:`, relatedWords);
 
+      /* // Remove the word "the" from the arrays */
+      /* const unwantedWords = ["the", "a", "an", "is", "to", "of", "in", "with"]; */
+      /* const filteredRelatedWords = relatedWords */
+      /*   .map((item) => item.word) */
+      /*   .filter((word) => !unwantedWords.includes(word)); // Filter related words */
+      /* const filteredAdjectives = adjectives */
+      /*   .map((item) => item.word) */
+      /*   .filter((word) => !unwantedWords.includes(word)); // Filter adjectives */
+      /* const filteredNouns = nouns */
+      /*   .map((item) => item.word) */
+      /*   .filter((word) => !unwantedWords.includes(word)); // Filter nouns */
+
+      /* // Log the filtered nouns */
+      /* console.log(`Filtered Related Words: ${filteredRelatedWords}`); */
+      /* console.log(`Filtered Adjectives: ${filteredAdjectives}`); */
+      /* console.log(`Filtered Nouns: ${filteredNouns}`); */
+
       if (
         adjectives.length > 0 &&
         nouns.length > 0 &&
@@ -227,7 +244,8 @@ function createHaiku(adjectives, nouns, verbs) {
   let lines = ["", "", ""]; // Three lines for the haiku
   let remainingSyllables = [5, 7, 5]; // Expected syllable counts per line
 
-  // Pick and remove word from array
+  // Pick and remove word from array to prevent repetition of the same words
+  // Following 3 blocks of code are from ChatGPT
   function pickAndRemove(array) {
     if (array.length > 0) {
       return array.splice(Math.floor(Math.random() * array.length), 1)[0];
@@ -235,86 +253,65 @@ function createHaiku(adjectives, nouns, verbs) {
     return "";
   }
 
-  // Try to build each line according to the syllable count
+  // Template for haiku word structure
+  const templates = [
+    { line: 1, structure: ["Adjective", "Noun"] },
+    {
+      line: 2,
+      structure: ["Noun", "Verb", "Preposition", "Adjective", "Noun"],
+    },
+    { line: 3, structure: ["Adjective", "Noun", "Verb"] },
+  ];
+
+  // Function to build each line
+  function buildLine(template) {
+    let parts = [];
+
+    template.structure.forEach((type) => {
+      if (type === "Adjective") {
+        parts.push(pickAndRemove(adjectives));
+      } else if (type === "Noun") {
+        parts.push(pickAndRemove(nouns));
+      } else if (type === "Verb") {
+        parts.push(pickAndRemove(verbs));
+      } else if (type === "Preposition") {
+        const prepositions = ["with", "by", "on", "in", "at", "of"];
+        parts.push(
+          prepositions[Math.floor(Math.random() * prepositions.length)]
+        );
+      }
+    });
+
+    // Remove any undefined or empty words
+    parts = parts.filter((word) => word);
+    return parts.join(" ").trim();
+  }
+
+  // Try to build each line according to the syllable count and template
   for (let i = 0; i < 3; i++) {
     let currentLine = [];
-    let currentSyllables = 0;
+    let template = templates.find((t) => t.line === i + 1);
 
-    while (
-      currentSyllables < remainingSyllables[i] &&
-      (adjectives.length > 0 || nouns.length > 0 || verbs.length > 0)
-    ) {
-      // Randomly picks an adjective, noun, or verb to help build a line
-      let linePart = "";
-
-      if (i === 0) {
-        // For the first line: adjective + noun
-        const adjective = pickAndRemove(adjectives);
-        const noun = pickAndRemove(nouns);
-        if (adjective && noun) {
-          linePart = `${adjective} ${noun}`;
-        } else {
-          linePart = pickAndRemove(nouns);
-        }
-      } else if (i === 1) {
-        // For the second line: verb + adverb or adjective + noun
-        const verb = pickAndRemove(verbs);
-        const noun = pickAndRemove(nouns);
-        const adjective = pickAndRemove(adjectives);
-        if (verb && noun) {
-          linePart = `${verb} ${adjective ? adjective + " " : ""}${noun}`;
-        } else if (verb) {
-          linePart = verb;
-        } else {
-          linePart = noun;
-        }
-      } else {
-        // For the third line: noun + verb
-        const noun = pickAndRemove(nouns);
-        const verb = pickAndRemove(verbs);
-        if (noun && verb) {
-          linePart = `${noun} ${verb}`;
-        } else if (noun) {
-          linePart = noun;
-        } else {
-          linePart = verb;
-        }
-      }
-
-      linePart = linePart.trim(); // Trim to avoid unnecessary spaces
+    for (let attempts = 0; attempts < 10; attempts++) {
+      // Try multiple times to find a match
+      let linePart = buildLine(template);
       let syllableCount = checkLine(linePart);
 
-      console.log(
-        `Trying: "${linePart}" with syllable count: ${syllableCount}`
-      );
-
-      // Ensure adding this part doesn't exceed the syllable count
-      if (
-        currentSyllables + syllableCount <= remainingSyllables[i] &&
-        syllableCount > 0 &&
-        !linePart.endsWith("the") && // Avoid ending with "the"
-        !linePart.endsWith("a") && // Avoid ending with "a"
-        !linePart.endsWith("an") && // Avoid ending with "an"
-        !linePart.endsWith("is") && // Avoid ending with "is"
-        !linePart.endsWith("are") // Avoid ending with "are"
-      ) {
-        currentLine.push(linePart);
-        currentSyllables += syllableCount;
+      if (syllableCount === remainingSyllables[i]) {
+        currentLine = linePart;
+        break;
       }
     }
-    console.log(
-      `Line ${i + 1} generated: "${currentLine.join(
-        " "
-      )}" with ${currentSyllables} syllables.`
-    );
 
-    if (currentSyllables !== remainingSyllables[i]) {
+    if (currentLine.length === 0) {
       console.log(`Failed to match the syllable requirement for line ${i + 1}`);
       return false; // Couldn't generate a valid haiku, abort
     }
 
-    lines[i] = currentLine.join(" ").trim();
+    lines[i] = currentLine;
   }
+
+  console.log(`Generated Haiku: ${lines[0]}, ${lines[1]}, ${lines[2]}`);
 
   return `<div>${lines[0]}<br><br>${lines[1]}<br><br>${lines[2]}</div>`;
 }
