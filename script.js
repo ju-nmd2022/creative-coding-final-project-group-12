@@ -227,6 +227,14 @@ function createHaiku(adjectives, nouns, verbs) {
   let lines = ["", "", ""]; // Three lines for the haiku
   let remainingSyllables = [5, 7, 5]; // Expected syllable counts per line
 
+  // Pick and remove word from array
+  function pickAndRemove(array) {
+    if (array.length > 0) {
+      return array.splice(Math.floor(Math.random() * array.length), 1)[0];
+    }
+    return "";
+  }
+
   // Try to build each line according to the syllable count
   for (let i = 0; i < 3; i++) {
     let currentLine = [];
@@ -238,18 +246,39 @@ function createHaiku(adjectives, nouns, verbs) {
     ) {
       // Randomly picks an adjective, noun, or verb to help build a line
       let linePart = "";
+
       if (i === 0) {
-        // For the first line, favor adjectives and nouns
-        linePart = adjectives.length > 0 ? adjectives.pop() : "";
-        linePart += nouns.length > 0 ? " " + nouns.pop() : "";
+        // For the first line: adjective + noun
+        const adjective = pickAndRemove(adjectives);
+        const noun = pickAndRemove(nouns);
+        if (adjective && noun) {
+          linePart = `${adjective} ${noun}`;
+        } else {
+          linePart = pickAndRemove(nouns);
+        }
       } else if (i === 1) {
-        // For the second line, use verbs and related words (verbs)
-        linePart = verbs.length > 0 ? verbs.pop() : "";
-        linePart += adjectives.length > 0 ? " " + adjectives.pop() : "";
+        // For the second line: verb + adverb or adjective + noun
+        const verb = pickAndRemove(verbs);
+        const noun = pickAndRemove(nouns);
+        const adjective = pickAndRemove(adjectives);
+        if (verb && noun) {
+          linePart = `${verb} ${adjective ? adjective + " " : ""}${noun}`;
+        } else if (verb) {
+          linePart = verb;
+        } else {
+          linePart = noun;
+        }
       } else {
-        // For the third line, favor nouns and verbs
-        linePart = nouns.length > 0 ? nouns.pop() : "";
-        linePart += verbs.length > 0 ? " " + verbs.pop() : "";
+        // For the third line: noun + verb
+        const noun = pickAndRemove(nouns);
+        const verb = pickAndRemove(verbs);
+        if (noun && verb) {
+          linePart = `${noun} ${verb}`;
+        } else if (noun) {
+          linePart = noun;
+        } else {
+          linePart = verb;
+        }
       }
 
       linePart = linePart.trim(); // Trim to avoid unnecessary spaces
