@@ -214,6 +214,7 @@ function getNegativeToneWord(word) {
     });
 }
 
+// syllables counter function reference https://andyhartnett.medium.com/to-parse-a-haiku-using-only-javascript-was-interesting-5ea64ce31948
 // Function to count syllables in a word
 function syllables(word) {
   word = word.toLowerCase();
@@ -237,6 +238,11 @@ function checkLine(sentence) {
   });
 
   return count;
+}
+
+// Function to capitalize the first letter of a string
+function capitalizeFirstLetter(string) {
+  return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
 // Function to generate a haiku
@@ -308,7 +314,7 @@ function createHaiku(adjectives, nouns, verbs) {
       return false; // Couldn't generate a valid haiku, abort
     }
 
-    lines[i] = currentLine;
+    lines[i] = capitalizeFirstLetter(currentLine);
   }
 
   console.log(`Generated Haiku: ${lines[0]}, ${lines[1]}, ${lines[2]}`);
