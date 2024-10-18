@@ -21,7 +21,7 @@ function generatePoem() {
 
   document.getElementById("poem-output").textContent = "Generating poem...";
 
-  // Check if current input = last input
+  // Check if current input = last input to count repeats
   let wordToUse = inputWord;
   if (inputWord === lastInputWord) {
     repeatCount++;
@@ -33,7 +33,7 @@ function generatePoem() {
 
   console.log(`Input Word: ${inputWord}, Repeat Count: ${repeatCount}`);
 
-  // Generate opposite word
+  // Generate opposite word if repeated 5 times
   if (repeatCount === 5) {
     console.log("Fetching antonym...");
     getOppositeWordOrTone(inputWord).then((ConflictingWord) => {
@@ -49,7 +49,6 @@ function generatePoem() {
     fetchWords(wordToUse);
   }
 }
-
 
 // Function to fetch words for poem with retries
 function fetchWords(inputWord, retryCount = 10) {
@@ -93,11 +92,7 @@ function fetchWords(inputWord, retryCount = 10) {
               }
             });
 
-            const haiku = createHaiku(
-              selectedAdjectives,
-              selectedNouns,
-              verbs
-            );
+            const haiku = createHaiku(selectedAdjectives, selectedNouns, verbs);
 
             if (haiku) {
               document.getElementById("poem-output").innerHTML = haiku;
@@ -132,7 +127,6 @@ function fetchWords(inputWord, retryCount = 10) {
   tryFetch(1); // Start with the first attempt
 }
 
-
 // Function to fetch the part of speech for a word using the Dictionary API
 function fetchPartOfSpeech(word) {
   const dictionaryApiUrl = `https://api.dictionaryapi.dev/api/v2/entries/en/${word}`;
@@ -154,7 +148,8 @@ function fetchPartOfSpeech(word) {
     });
 }
 
-// Function for fetching opposite words or conflicting tones
+// Function for fetching conflicting/opposite words
+// The following 2 blocks of code is from ChatGPT
 function getOppositeWordOrTone(word) {
   return getOppositeWord(word).then((antonym) => {
     return antonym;
@@ -163,7 +158,7 @@ function getOppositeWordOrTone(word) {
 
 // Function for fetching opposite words (antonyms)
 function getOppositeWord(word) {
-  return fetch(`https://api.datamuse.com/words?rel_ant=${word}`) // Finding antonyms
+  return fetch(`https://api.datamuse.com/words?rel_ant=${word}`) // Find antonyms
     .then((response) => response.json())
     .then((data) => {
       console.log(`Antonym Response Data:`, data);
@@ -179,8 +174,7 @@ function getOppositeWord(word) {
     });
 }
 
-
-// syllables counter function reference https://andyhartnett.medium.com/to-parse-a-haiku-using-only-javascript-was-interesting-5ea64ce31948
+// Syllables counter function reference: https://andyhartnett.medium.com/to-parse-a-haiku-using-only-javascript-was-interesting-5ea64ce31948
 // Function to count syllables in a word
 function syllables(word) {
   word = word.toLowerCase();
@@ -216,7 +210,7 @@ function createHaiku(adjectives, nouns, verbs) {
   let lines = ["", "", ""]; // Three lines for the haiku
   let remainingSyllables = [5, 7, 5]; // Expected syllable counts per line
 
-  // Pick and remove word from array to prevent repetition of the same words
+  // Function to pick and remove word from array to prevent repetition of the same words
   // Following 3 blocks of code are from ChatGPT
   function pickAndRemove(array) {
     if (array.length > 0) {
