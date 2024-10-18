@@ -14,7 +14,7 @@ function generatePoem() {
   if (randomNum < 0.1) {
     document.getElementById("poem-output").textContent = "ugh 🙄 really?";
     return;
-  } else if (randomNum < 0.1) {
+  } else if (randomNum < 0.2) {
     document.getElementById("poem-output").textContent = "no.";
     return;
   }
@@ -50,102 +50,88 @@ function generatePoem() {
   }
 }
 
-// Function to fetch words for poem and identify verbs using the Dictionary API
-function fetchWords(inputWord) {
-  console.log(`Fetching words related to: ${inputWord}`);
-  Promise.all([
-    fetch(`https://api.datamuse.com/words?rel_trg=${inputWord}`), // Related words
-    fetch(`https://api.datamuse.com/words?rel_jjb=${inputWord}`), // Adjectives
-    fetch(`https://api.datamuse.com/words?rel_jja=${inputWord}`), // Nouns
-  ])
-    .then(([relatedResponse, adjectiveResponse, nounResponse]) =>
-      Promise.all([
-        relatedResponse.json(),
-        adjectiveResponse.json(),
-        nounResponse.json(),
-      ])
-    )
-    .then(([relatedWords, adjectives, nouns]) => {
-      console.log(`Adjectives:`, adjectives);
-      console.log(`Nouns:`, nouns);
-      console.log(`Related Words:`, relatedWords);
 
-      /* // Remove the word "the" from the arrays */
-      /* const unwantedWords = ["the", "a", "an", "is", "to", "of", "in", "with"]; */
-      /* const filteredRelatedWords = relatedWords */
-      /*   .map((item) => item.word) */
-      /*   .filter((word) => !unwantedWords.includes(word)); // Filter related words */
-      /* const filteredAdjectives = adjectives */
-      /*   .map((item) => item.word) */
-      /*   .filter((word) => !unwantedWords.includes(word)); // Filter adjectives */
-      /* const filteredNouns = nouns */
-      /*   .map((item) => item.word) */
-      /*   .filter((word) => !unwantedWords.includes(word)); // Filter nouns */
+// Function to fetch words for poem with retries
+function fetchWords(inputWord, retryCount = 10) {
+  const tryFetch = (attempt) => {
+    return Promise.all([
+      fetch(`https://api.datamuse.com/words?rel_trg=${inputWord}`), // Related words
+      fetch(`https://api.datamuse.com/words?rel_jjb=${inputWord}`), // Adjectives
+      fetch(`https://api.datamuse.com/words?rel_jja=${inputWord}`), // Nouns
+    ])
+      .then(([relatedResponse, adjectiveResponse, nounResponse]) =>
+        Promise.all([
+          relatedResponse.json(),
+          adjectiveResponse.json(),
+          nounResponse.json(),
+        ])
+      )
+      .then(([relatedWords, adjectives, nouns]) => {
+        if (
+          adjectives.length > 0 &&
+          nouns.length > 0 &&
+          relatedWords.length > 0
+        ) {
+          const selectedAdjectives = shuffleArray(adjectives).map(
+            (item) => item.word
+          ); // Random adjectives
+          const selectedNouns = shuffleArray(nouns).map((item) => item.word); // Random nouns
+          const selectedRelatedWords = shuffleArray(relatedWords).map(
+            (item) => item.word
+          ); // Random related words
 
-      /* // Log the filtered nouns */
-      /* console.log(`Filtered Related Words: ${filteredRelatedWords}`); */
-      /* console.log(`Filtered Adjectives: ${filteredAdjectives}`); */
-      /* console.log(`Filtered Nouns: ${filteredNouns}`); */
+          const verbPromises = selectedRelatedWords.map((word) =>
+            fetchPartOfSpeech(word)
+          );
 
-      if (
-        adjectives.length > 0 &&
-        nouns.length > 0 &&
-        relatedWords.length > 0
-      ) {
-        const selectedAdjectives = shuffleArray(adjectives).map(
-          (item) => item.word
-        ); // Random adjectives
-        const selectedNouns = shuffleArray(nouns).map((item) => item.word); // Random nouns
-        const selectedRelatedWords = shuffleArray(relatedWords).map(
-          (item) => item.word
-        ); // Random related words
+          Promise.all(verbPromises).then((partOfSpeechArray) => {
+            const verbs = [];
 
-        console.log(`Selected Adjectives: ${selectedAdjectives}`);
-        console.log(`Selected Nouns: ${selectedNouns}`);
-        console.log(
-          `Selected Related Words (potential verbs): ${selectedRelatedWords}`
-        );
+            partOfSpeechArray.forEach((parts, index) => {
+              if (parts.includes("verb")) {
+                verbs.push(selectedRelatedWords[index]); // Only push verbs to the array
+              }
+            });
 
-        // Use the Dictionary API to find verbs only from the related words
-        const verbPromises = selectedRelatedWords.map((word) =>
-          fetchPartOfSpeech(word)
-        );
+            const haiku = createHaiku(
+              selectedAdjectives,
+              selectedNouns,
+              verbs
+            );
 
-        // Wait for all verb checks to finish
-        Promise.all(verbPromises).then((partOfSpeechArray) => {
-          const verbs = [];
-
-          // Check which related words are verbs
-          partOfSpeechArray.forEach((parts, index) => {
-            if (parts.includes("verb")) {
-              verbs.push(selectedRelatedWords[index]); // Only push verbs to the array
+            if (haiku) {
+              document.getElementById("poem-output").innerHTML = haiku;
+            } else {
+              document.getElementById("poem-output").textContent =
+                "Couldn't generate a valid haiku. Try again!";
             }
           });
-
-          console.log(`Verbs: ${verbs}`);
-
-          // Now we can create a Haiku with the identified adjectives, nouns, and verbs
-          const haiku = createHaiku(selectedAdjectives, selectedNouns, verbs);
-
-          // Update the poem output
-          if (haiku) {
-            document.getElementById("poem-output").innerHTML = haiku;
-          } else {
-            document.getElementById("poem-output").textContent =
-              "Couldn't generate a valid haiku. Try another word!";
+        } else {
+          if (attempt < retryCount) {
+            console.warn(`Attempt ${attempt} failed, retrying...`);
+            return tryFetch(attempt + 1); // Retry the fetch
           }
-        });
-      } else {
+          document.getElementById("poem-output").textContent =
+            "Couldn't generate a poem. Try again!";
+        }
+      })
+      .catch((error) => {
+        if (attempt < retryCount) {
+          console.warn(
+            `Attempt ${attempt} failed due to error, retrying...`,
+            error
+          );
+          return tryFetch(attempt + 1); // Retry the fetch
+        }
         document.getElementById("poem-output").textContent =
-          "Couldn't generate a poem. Try another word!";
-      }
-    })
-    .catch((error) => {
-      document.getElementById("poem-output").textContent =
-        "Error generating poem";
-      console.error("Error fetching data from Datamuse API:", error);
-    });
+          "Couldn't generate a poem. Try again";
+        console.error("Error fetching data from Datamuse API:", error);
+      });
+  };
+
+  tryFetch(1); // Start with the first attempt
 }
+
 
 // Function to fetch the part of speech for a word using the Dictionary API
 function fetchPartOfSpeech(word) {
@@ -171,10 +157,6 @@ function fetchPartOfSpeech(word) {
 // Function for fetching opposite words or conflicting tones
 function getOppositeWordOrTone(word) {
   return getOppositeWord(word).then((antonym) => {
-    if (antonym === word) {
-      console.log("Fetching opposing emotional tone...");
-      return getNegativeToneWord(word);
-    }
     return antonym;
   });
 }
@@ -197,22 +179,6 @@ function getOppositeWord(word) {
     });
 }
 
-// Function to fetch words with negative connotations
-function getNegativeToneWord(word) {
-  return fetch(`https://api.datamuse.com/words?rel_trg=${word}`) // Fetch words with a similar meaning
-    .then((response) => response.json())
-    .then((data) => {
-      if (data.length > 0) {
-        const negativeWord = shuffleArray(data).find((w) => w.word !== word); // Choose a random conflicting word
-        return negativeWord ? negativeWord.word : word;
-      }
-      return word; // Return original word if no conflicting tone is found
-    })
-    .catch((error) => {
-      console.error("Error fetching negative tone word:", error);
-      return word; // Return original word on error
-    });
-}
 
 // syllables counter function reference https://andyhartnett.medium.com/to-parse-a-haiku-using-only-javascript-was-interesting-5ea64ce31948
 // Function to count syllables in a word
