@@ -50,7 +50,7 @@ function generatePoem() {
   }
 }
 
-// Function to fetch words for poem with retries
+// Function to fetch words for poem with retries (ChatGPT)
 function fetchWords(inputWord, retryCount = 10) {
   const tryFetch = (attempt) => {
     return Promise.all([
@@ -282,7 +282,7 @@ function createHaiku(adjectives, nouns, verbs) {
   return `<div>${lines[0]}<br><br>${lines[1]}<br><br>${lines[2]}</div>`;
 }
 
-// Function to shuffle an array (Fisher-Yates Shuffle Algorithm)
+// Function to shuffle an array (Fisher-Yates Shuffle Algorithm) (chatGPT)
 function shuffleArray(array) {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
